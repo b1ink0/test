@@ -51,10 +51,10 @@
       const user = gun.user();
 
       $("#up").on("click", function (e) {
-        let temp = JSON.parse(localStorage.getItem("gun/"));
-        if (temp.hasOwnProperty(`~@${$("#alias").val()}`)) {
-          console.log("Username Already Exists");
-        } else {
+        // let temp = JSON.parse(localStorage.getItem("gun/"));
+        // if (temp.hasOwnProperty(`~@${$("#alias").val()}`)) {
+        //   console.log("Username Already Exists");
+        // } else {
           user.create($("#alias").val(), $("#pass").val());
           let obj = new JSEncrypt({ default_key_size: 1024 });
           obj.getKey();
@@ -67,7 +67,7 @@
             pri: private
           }
           localStorage.setItem($("#alias").val(), JSON.stringify(temp))
-        }
+        // }
       });
 
       $("#sign").on("submit", function (e) {
