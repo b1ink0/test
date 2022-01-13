@@ -1,140 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script
-      src="https://cdn.jsdelivr.net/npm/jsencrypt@3.2.1/bin/jsencrypt.min.js"
-      integrity="sha512-hI8jEOQLtyzkIiWVygLAcKPradIhgXQUl8I3lk2FUmZ8sZNbSSdHHrWo5mrmsW1Aex+oFZ+UUK7EJTVwyjiFLA=="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/gun.js"
-      integrity="sha512-F7/rW8ee5HU9r0zrXffpHjsPHtZCKW0OE1+BWnK+9eUV+kkosMtiDx9FwpNzEwY1tSXEvGVwf47zgs1X51eUmA=="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/sea.js"
-      integrity="sha256-HiuxN/UJBpWtE2s3NbooyWHrbxjQFKDu3Q8ybsHv+8w="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
-      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-      crossorigin="anonymous"
-    ></script>
-    <title>Document</title>
-  </head>
-  <body>
-    <form id="sign">
-      <input id="alias" placeholder="username" />
-      <input id="pass" type="password" placeholder="passphrase" />
-      <input id="in" type="submit" value="sign in" />
-      <input id="up" type="button" value="sign up" />
-    </form>
-    <form id="chat">
-      <input id="request" type="text" placeholder="public key" title="public key"/>
-      <input type="submit" value="Ok"/>
-    </form>
-    </form>
-    <form id="messages">
-      <textarea id="message" placeholder="paste here!"></textarea>
-      <input type="submit" value="Send"/>
-    </form>
-    <script>
-      const gun = Gun([
-        "http://localhost:8000/gun",
-        "https://gun-server-1.herokuapp.com/gun",
-      ]);
+   <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <script src="https://cdn.jsdelivr.net/npm/jsencrypt@3.2.1/bin/jsencrypt.min.js"
+         integrity="sha512-hI8jEOQLtyzkIiWVygLAcKPradIhgXQUl8I3lk2FUmZ8sZNbSSdHHrWo5mrmsW1Aex+oFZ+UUK7EJTVwyjiFLA=="
+         crossorigin="anonymous"></script>
+      <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/gun.js"
+         integrity="sha512-F7/rW8ee5HU9r0zrXffpHjsPHtZCKW0OE1+BWnK+9eUV+kkosMtiDx9FwpNzEwY1tSXEvGVwf47zgs1X51eUmA=="
+         crossorigin="anonymous"></script>
+      <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/sea.js"
+         integrity="sha256-HiuxN/UJBpWtE2s3NbooyWHrbxjQFKDu3Q8ybsHv+8w=" crossorigin="anonymous"></script>
+      <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
+         integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+      <title>Document</title>
+   </head>
+   <body>
+      <form id="sign">
+         <input id="alias" placeholder="username" required/>
+         <input id="pass" type="password" placeholder="passphrase" required/>
+         <input id="in" type="submit" value="sign in" />
+         <input id="up" type="button" value="sign up" />
+      </form>
+      <form id="chat" style="display: none;">
+         <input id="request" type="text" placeholder="public key" title="public key" required/>
+         <input type="submit" value="Ok" />
+      </form>
+      </form>
+      <div id="btns" style="display: none;">
+        <button id="rBtn" onclick="recivedMessageDisplay()" type="button">Recived</button>
+        <button id="sBtn" onclick="sentMessageDisplay()" type="button">Sent</button>
+        <button id="cBtn" onclick="copyPublicKey()" type="button">Copy Public Key</button>
+      </div>
+      <div id="list">
+      </div>
+      <script>
+         let sign = false;
+         const getCharCodes = (s) => {
+           let charCodeArr = [];
+           for (let i = 0; i < s.length; i++) {
+             let code = s.charCodeAt(i);
+             charCodeArr.push(code);
+           }
+           charCodeArr.reduce((a, b) => a + b, 0)
+           return charCodeArr;
+         }
+         const code = (s) => {
+           let sum = getCharCodes(s).reduce((a, b) => a + b, 0)
+           sum = sum.toString()
+           sum = "Z" + sum
+           return sum;
+         }
+         const en = (key, data) => {
+          let encrypt = new JSEncrypt();
+          encrypt.setPublicKey(key);
+          let enc = encrypt.encrypt(data);
+          return enc
+         }
 
-      const user = gun.user();
+         const de = (data) => {
+          let key = JSON.parse(localStorage.getItem($("#alias").val())).pri
+          var decrypt = new JSEncrypt();
+          decrypt.setPrivateKey(key);
+          var uncrypted = decrypt.decrypt(data);
+          return uncrypted
+         }
 
-      $("#up").on("click", function (e) {
-        // let temp = JSON.parse(localStorage.getItem("gun/"));
-        // if (temp.hasOwnProperty(`~@${$("#alias").val()}`)) {
-        //   console.log("Username Already Exists");
-        // } else {
-          user.create($("#alias").val(), $("#pass").val());
-          let obj = new JSEncrypt({ default_key_size: 1024 });
-          obj.getKey();
-          let public = obj.getPublicKey();
-          let private = obj.getPrivateKey();
-          public = public.replace(/(\r\n|\n|\r)/gm, "")
-          private = private.replace(/(\r\n|\n|\r)/gm, "")
-          let temp = {
-            pub: public,
-            pri: private
-          }
-          localStorage.setItem($("#alias").val(), JSON.stringify(temp))
-        // }
-      });
+         const copyPublicKey = () => {
+          let t = JSON.parse(localStorage.getItem($("#alias").val())).pub
+          navigator.clipboard.writeText(t);
+          alert("Copied tThe Public Key To Clipboard: \n" + t)
+         }
+        
+         const gun = Gun([
+           "http://localhost:8000/gun",
+           "https://gun-server-1.herokuapp.com/gun",
+         ]);
+         
+         const user = gun.user();
+         
+         $("#up").on("click", function (e) {
+           user.create($("#alias").val(), $("#pass").val());
+           let obj = new JSEncrypt({ default_key_size: 1024 });
+           obj.getKey();
+           let public = obj.getPublicKey();
+           let private = obj.getPrivateKey();
+           public = public.replace(/(\r\n|\n|\r)/gm, "")
+           private = private.replace(/(\r\n|\n|\r)/gm, "")
+           let temp = {
+             pub: public,
+             pri: private
+           }
+           localStorage.setItem($("#alias").val(), JSON.stringify(temp))
+         });
+         
+         $("#sign").on("submit", function (e) {
+           e.preventDefault();
+           user.auth($("#alias").val(), $("#pass").val());
+         });
+         
+         gun.on("auth", function () {
+           console.log("auth");
+           sign = true;
+           $("#sign").hide()
+           $("#btns").show()
+           $("#chat").show()
+         });
+         
+         $("#chat").on("submit", function (e) {
+           e.preventDefault();
+           temp = gun.get(code($("#request").val())).get($("#alias").val())
+           temp.get("sent").set(JSON.parse(localStorage.getItem($("#alias").val())).pub)
+         });
+         
+         const recivedMessageDisplay = () => {
+           if (sign) {
+             let data = JSON.parse(localStorage.getItem("gun/"));
+             let publicKey = JSON.parse(localStorage.getItem($("#alias").val())).pub
+             let pubKey = code(publicKey)
+             console.log(pubKey)
+             Object.keys(eval(`data.${pubKey}`)).forEach(key => {
+               if (key != "_") {
+                 let div = document.createElement(key)
+                 $("#list").append(`<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="fr${key}"><input id="r${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`)
+                 $(`#fr${key}`).on("submit", function (e) {
+                   e.preventDefault();
+                   console.log($(`#r${key}`).val())
+                   temp = gun.get(pubKey).get(key).get("sent")
+                   temp.set(`${$("#alias").val()}: ${$(`#r${key}`).val()}`);
+                   $(`#r${key}`).val("");
+                 })
+                 let t = gun.get(pubKey).get(key).get("sent")
+                 t.map().once(data => {
+                   if (data) {
+                    let li = document.createElement("li");
+                     let text = document.createTextNode(data);
+                     li.appendChild(text)
+                     $(`#${key} ul`).append(li)
+           
+                   }
+                 })
+               }
+             })
+           } else {
+             console.log("Enter Public Key")
+           }
+         }
+         
+         const sentMessageDisplay = () => {
+           if (sign) {
+             let data = JSON.parse(localStorage.getItem("gun/"));
+             let publicKey = $("#request").val()
+             let pubKey = code(publicKey)
+             Object.keys(eval(`data.${pubKey}`)).forEach(key => {
+               if (key == $("#alias").val()) {
+                 let div = document.createElement(key)
+                 $("#list").append(`<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="f${key}"><input id="i${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`)
+                 $(`#f${key}`).on("submit", function (e) {
+                   e.preventDefault();
+                   temp = gun.get(pubKey).get($("#alias").val()).get("sent")
+                  //  let t = en( publicKey,`${$("#alias").val()}: ${$(`#i${key}`).val()}`)
+                   temp.set(`${$("#alias").val()}: ${$(`#i${key}`).val()}`);
+                   $(`#i${key}`).val("");
+                 })
+                 let t = gun.get(pubKey).get(key).get("sent")
+                 t.map().once(data => {
+                   if (data) {
+                     let li = document.createElement("li");
+                     let text = document.createTextNode(data);
+                     li.appendChild(text)
+                     $(`#${key} ul`).append(li)
+                   }
+                 })
+               }
+             })
+           } else {
+             console.log("Enter Public Key")
+           }
+         }
 
-      $("#sign").on("submit", function (e) {
-        e.preventDefault();
-        user.auth($("#alias").val(), $("#pass").val());
-      });
-
-      gun.on("auth", function () {
-        console.log("auth");
-        // $("#sign").hide();
-      });
-
-      $("#chat").on("submit", function (e) {
-        e.preventDefault();
-        temp = gun.get($("#request").val()).get($("#alias").val())
-        console.log($("#request").val())
-        temp.get("sent").set("Sent 1")
-        temp.get("received").set("Received 1")
-      });
-
-      $("#messages").on("submit", function (e) {
-        e.preventDefault();
-        console.log($("#message").val())
-        temp = gun.get($("#request").val()).get($("#alias").val()).get("sent")
-        temp.set($("#message").val());
-        $("#message").val("");
-      })
-      //   copy = gun.get("test").get("paste");
-      //   paste.oninput = () => {
-      //     copy.put(paste.value);
-      //   };
-      //   copy.on((data) => {
-      //     paste.value = data;
-      //   });
-      //   const example = () => {
-      //     let obj = new JSEncrypt({ default_key_size: 1024 });
-      //     obj.getKey();
-      //     let public = obj.getPublicKey();
-      //     let private = obj.getPrivateKey();
-      //     console.log(public);
-      //     console.log(private);
-      //     obj.setPublicKey(private);
-      //     let en = obj.encrypt("Hello Workd");
-      //     console.log(en);
-      //     obj.setPrivateKey(private);
-      //     let de = obj.decrypt(en);
-      //     console.log(de);
-      //   };
-      //   example();
-      const test = () => {
-        let obj = new JSEncrypt({ default_key_size: 1024 });
-          obj.getKey();
-          let public = obj.getPublicKey();
-          let private = obj.getPrivateKey();
-          console.log(public)
-          console.log(private)
-          // public = public.substr(27,public.length - 1)
-          public = public.replace(/(\r\n|\n|\r)/gm, "")
-          private = private.replace(/(\r\n|\n|\r)/gm, "")
-          console.log(public)
-          console.log(private)
-          let temp = {
-            pub: public,
-            pri: private
-          }
-
-      }
-    </script>
-  </body>
+       
+      </script>
+   </body>
 </html>
