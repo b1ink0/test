@@ -24,7 +24,7 @@
          <input id="up" type="button" value="sign up" />
       </form>
       <form id="chat" style="display: none;">
-         <input id="request" type="text" placeholder="public key" title="public key" required/>
+         <input id="request" type="text" placeholder="invite code" title="public key" required/>
          <input type="submit" value="Ok" />
       </form>
       </form>
@@ -37,6 +37,7 @@
       </div>
       <script>
          let sign = false;
+         let pkey = "";
          const getCharCodes = (s) => {
            let charCodeArr = [];
            for (let i = 0; i < s.length; i++) {
@@ -59,8 +60,7 @@
           return enc
          }
 
-         const de = (data) => {
-          let key = JSON.parse(localStorage.getItem($("#alias").val())).pri
+         const de = (key, data) => {
           var decrypt = new JSEncrypt();
           decrypt.setPrivateKey(key);
           var uncrypted = decrypt.decrypt(data);
@@ -68,9 +68,13 @@
          }
 
          const copyPublicKey = () => {
-          let t = JSON.parse(localStorage.getItem($("#alias").val())).pub
+          let t = {
+            username: $("#alias").val(),
+            pubkey: JSON.parse(localStorage.getItem($("#alias").val())).pub
+          }
+          t = JSON.stringify(t)
           navigator.clipboard.writeText(t);
-          alert("Copied tThe Public Key To Clipboard: \n" + t)
+          alert("Copied The Invite Code To Clipboard: \n" + t)
          }
         
          const gun = Gun([
@@ -110,14 +114,20 @@
          
          $("#chat").on("submit", function (e) {
            e.preventDefault();
-           temp = gun.get(code($("#request").val())).get($("#alias").val())
-           temp.get("sent").set(JSON.parse(localStorage.getItem($("#alias").val())).pub)
+           let pub = JSON.parse($("#request").val()).pubkey
+           console.log(pub)
+           temp = gun.get(code(pub)).get($("#alias").val())
+           let t = {
+             pkey: JSON.parse(localStorage.getItem($("#alias").val())).pub,
+           }
+           temp.get("sent").set(JSON.stringify(t));
          });
          
          const recivedMessageDisplay = () => {
            if (sign) {
              let data = JSON.parse(localStorage.getItem("gun/"));
              let publicKey = JSON.parse(localStorage.getItem($("#alias").val())).pub
+             let myPriKey = JSON.parse(localStorage.getItem($("#alias").val())).pri
              let pubKey = code(publicKey)
              console.log(pubKey)
              Object.keys(eval(`data.${pubKey}`)).forEach(key => {
@@ -126,19 +136,36 @@
                  $("#list").append(`<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="fr${key}"><input id="r${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`)
                  $(`#fr${key}`).on("submit", function (e) {
                    e.preventDefault();
-                   console.log($(`#r${key}`).val())
                    temp = gun.get(pubKey).get(key).get("sent")
-                   temp.set(`${$("#alias").val()}: ${$(`#r${key}`).val()}`);
+                   let r = en( pkey, `${$(`#r${key}`).val()}`)
+                   let s = en( publicKey, `${$(`#r${key}`).val()}`)
+                   let t = {
+                     s: s,
+                     r: r
+                   }
+                   temp.set(JSON.stringify(t));
                    $(`#r${key}`).val("");
                  })
                  let t = gun.get(pubKey).get(key).get("sent")
+                 let con = false;
                  t.map().once(data => {
-                   if (data) {
-                    let li = document.createElement("li");
-                     let text = document.createTextNode(data);
-                     li.appendChild(text)
-                     $(`#${key} ul`).append(li)
-           
+                   let temp = JSON.parse(data);
+                   let send = true;
+                   if (con){
+                     if (data) {
+                       let message = de(myPriKey, temp.s)
+                       if (message == false || message == null) {
+                         message = de(myPriKey, temp.r);
+                         send = false
+                      }
+                      let li = document.createElement("li");
+                       let text = document.createTextNode(`${send ? $("#alias").val() : key}: ${message}`);
+                       li.appendChild(text)
+                       $(`#${key} ul`).append(li)
+                     }
+                   } else {
+                     pkey = temp.pkey
+                     con = true;
                    }
                  })
                }
@@ -151,8 +178,11 @@
          const sentMessageDisplay = () => {
            if (sign) {
              let data = JSON.parse(localStorage.getItem("gun/"));
-             let publicKey = $("#request").val()
+             let publicKey = JSON.parse($("#request").val()).pubkey
+             let myPublicKey = JSON.parse(localStorage.getItem($("#alias").val())).pub
+             let myPriKey = JSON.parse(localStorage.getItem($("#alias").val())).pri
              let pubKey = code(publicKey)
+             let username = JSON.parse($("#request").val()).username
              Object.keys(eval(`data.${pubKey}`)).forEach(key => {
                if (key == $("#alias").val()) {
                  let div = document.createElement(key)
@@ -160,15 +190,28 @@
                  $(`#f${key}`).on("submit", function (e) {
                    e.preventDefault();
                    temp = gun.get(pubKey).get($("#alias").val()).get("sent")
-                  //  let t = en( publicKey,`${$("#alias").val()}: ${$(`#i${key}`).val()}`)
-                   temp.set(`${$("#alias").val()}: ${$(`#i${key}`).val()}`);
+                   let r = en( publicKey, `${$(`#i${key}`).val()}`)
+                   let s = en( myPublicKey, `${$(`#i${key}`).val()}`)
+                   let t = {
+                     s: s,
+                     r: r
+                   }
+                   temp.set(JSON.stringify(t));
                    $(`#i${key}`).val("");
                  })
                  let t = gun.get(pubKey).get(key).get("sent")
                  t.map().once(data => {
-                   if (data) {
+                   let temp = JSON.parse(data)
+                   let send = true;
+                   if (temp) {
+                     let message = de(myPriKey, temp.s)
+                     if (!message) {
+                       message = de(myPriKey, temp.r);
+                       send = false
+                     }
+
                      let li = document.createElement("li");
-                     let text = document.createTextNode(data);
+                     let text = document.createTextNode(`${send ? $("#alias").val() : username}: ${message}`);
                      li.appendChild(text)
                      $(`#${key} ul`).append(li)
                    }
