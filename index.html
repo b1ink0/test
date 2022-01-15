@@ -73,8 +73,14 @@
             pubkey: JSON.parse(localStorage.getItem($("#alias").val())).pub
           }
           t = JSON.stringify(t)
-          navigator.clipboard.writeText(t);
-          alert("Copied The Invite Code To Clipboard: \n" + t)
+          var input = document.createElement("input");
+          input.setAttribute("value", t);
+          document.body.appendChild(input);
+          input.select();
+          var result = document.execCommand("copy");
+          document.body.removeChild(input);
+          alert("Copied!")
+          return result;
          }
         
          const gun = Gun([
