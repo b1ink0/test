@@ -1,242 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="UTF-8" />
-      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <script src="https://cdn.jsdelivr.net/npm/jsencrypt@3.2.1/bin/jsencrypt.min.js"
-         integrity="sha512-hI8jEOQLtyzkIiWVygLAcKPradIhgXQUl8I3lk2FUmZ8sZNbSSdHHrWo5mrmsW1Aex+oFZ+UUK7EJTVwyjiFLA=="
-         crossorigin="anonymous"></script>
-      <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/gun.js"
-         integrity="sha512-F7/rW8ee5HU9r0zrXffpHjsPHtZCKW0OE1+BWnK+9eUV+kkosMtiDx9FwpNzEwY1tSXEvGVwf47zgs1X51eUmA=="
-         crossorigin="anonymous"></script>
-      <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/sea.js"
-         integrity="sha256-HiuxN/UJBpWtE2s3NbooyWHrbxjQFKDu3Q8ybsHv+8w=" crossorigin="anonymous"></script>
-      <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
-         integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-      <title>Document</title>
-   </head>
-   <body>
-      <form id="sign">
-         <input id="alias" placeholder="username" required/>
-         <input id="pass" type="password" placeholder="passphrase" required/>
-         <input id="in" type="submit" value="sign in" />
-         <input id="up" type="button" value="sign up" />
-      </form>
-      <form id="chat" style="display: none;">
-         <input id="request" type="text" placeholder="invite code" title="public key" required/>
-         <input type="submit" value="Ok" />
-      </form>
-      </form>
-      <div id="btns" style="display: none;">
-        <button id="rBtn" onclick="recivedMessageDisplay()" type="button">Recived</button>
-        <button id="sBtn" onclick="sentMessageDisplay()" type="button">Sent</button>
-        <button id="cBtn" onclick="copyPublicKey()" type="button">Copy Public Key</button>
-      </div>
-      <div id="list">
-      </div>
-      <script>
-         let sign = false;
-         let pkey = "";
-         const getCharCodes = (s) => {
-           let charCodeArr = [];
-           for (let i = 0; i < s.length; i++) {
-             let code = s.charCodeAt(i);
-             charCodeArr.push(code);
-           }
-           charCodeArr.reduce((a, b) => a + b, 0)
-           return charCodeArr;
-         }
-         const code = (s) => {
-           let sum = getCharCodes(s).reduce((a, b) => a + b, 0)
-           sum = sum.toString()
-           sum = "Z" + sum
-           return sum;
-         }
-         const en = (key, data) => {
-          let encrypt = new JSEncrypt();
-          encrypt.setPublicKey(key);
-          let enc = encrypt.encrypt(data);
-          return enc
-         }
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="description" content="Decentralized Web Chat App" />
+    <meta name="keywords" content="HTML, CSS, JavaScript, GunJs" />
+    <meta name="author" content="Aditya Dhade" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/jsencrypt@3.2.1/bin/jsencrypt.min.js"
+      integrity="sha512-hI8jEOQLtyzkIiWVygLAcKPradIhgXQUl8I3lk2FUmZ8sZNbSSdHHrWo5mrmsW1Aex+oFZ+UUK7EJTVwyjiFLA=="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/gun.js"
+      integrity="sha512-F7/rW8ee5HU9r0zrXffpHjsPHtZCKW0OE1+BWnK+9eUV+kkosMtiDx9FwpNzEwY1tSXEvGVwf47zgs1X51eUmA=="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/gun@0.2020.1235/sea.js"
+      integrity="sha256-HiuxN/UJBpWtE2s3NbooyWHrbxjQFKDu3Q8ybsHv+8w="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
+    <title>D-Chat</title>
+  </head>
+  <body>
+    <div id="error"></div>
+    <form id="sign">
+      <input id="alias" placeholder="username" required />
+      <input
+        id="pass"
+        type="password"
+        placeholder="passphrase"
+        minlength="8"
+        required
+      />
+      <input id="in" type="submit" value="sign in" />
+      <input id="up" type="button" value="sign up" />
+    </form>
+    <div id="username"></div>
+    <form id="chat" style="display: none">
+      <input
+        id="request"
+        type="text"
+        placeholder="Invite Code"
+        title="public key"
+        required
+      />
+      <input type="submit" value="Add+" />
+    </form>
+    <div id="btns" style="display: none">
+      <button id="sBtn" onclick="getAllData()" type="button">
+        Refresh Messages
+      </button>
+      <button id="cBtn" onclick="copyPublicKey()" type="button">
+        Copy Invite Code
+      </button>
+      <h5>Chats</h5>
+    </div>
+    <div id="chats" style="display: flex; flex-direction: column"></div>
+    <div id="list"></div>
+    <script>
+      let SEA = Gun.SEA;
+      let sign = false;
+      let pkey = "";
+      let userData;
+      let myUsername = "";
+      let keys;
+      const getCharCodes = (s) => {
+        let charCodeArr = [];
+        for (let i = 0; i < s.length; i++) {
+          let code = s.charCodeAt(i);
+          charCodeArr.push(code);
+        }
+        charCodeArr.reduce((a, b) => a + b, 0);
+        return charCodeArr;
+      };
+      const code = (s) => {
+        let sum = getCharCodes(s).reduce((a, b) => a + b, 0);
+        sum = sum.toString();
+        sum = "Z" + sum;
+        return sum;
+      };
+      const en = (key, data) => {
+        let encrypt = new JSEncrypt();
+        encrypt.setPublicKey(key);
+        let enc = encrypt.encrypt(data);
+        return enc;
+      };
+      const ensea = async (pair, data) => {
+        let enc = await SEA.encrypt(data, pair);
+        // console.log(enc)
+        return enc;
+      };
+      const desea = async (pair, data) => {
+        var dec = await SEA.decrypt(data, pair);
+        // console.log(dec)
+        return dec;
+      };
 
-         const de = (key, data) => {
-          var decrypt = new JSEncrypt();
-          decrypt.setPrivateKey(key);
-          var uncrypted = decrypt.decrypt(data);
-          return uncrypted
-         }
+      const de = (key, data) => {
+        var decrypt = new JSEncrypt();
+        decrypt.setPrivateKey(key);
+        var uncrypted = decrypt.decrypt(data);
+        return uncrypted;
+      };
+      const copyPublicKey = () => {
+        let t = userData.pub;
+        var input = document.createElement("input");
+        input.setAttribute("value", t);
+        document.body.appendChild(input);
+        input.select();
+        var result = document.execCommand("copy");
+        document.body.removeChild(input);
+        alert("Copied!");
+        return result;
+      };
 
-         const copyPublicKey = () => {
-          let t = {
-            username: $("#alias").val(),
-            pubkey: JSON.parse(localStorage.getItem($("#alias").val())).pub
-          }
-          t = JSON.stringify(t)
-          var input = document.createElement("input");
-          input.setAttribute("value", t);
-          document.body.appendChild(input);
-          input.select();
-          var result = document.execCommand("copy");
-          document.body.removeChild(input);
-          alert("Copied!")
-          return result;
-         }
-        
-         const gun = Gun([
-           "http://localhost:8000/gun",
-           "https://gun-server-1.herokuapp.com/gun",
-         ]);
-         
-         const user = gun.user();
-         
-         $("#up").on("click", function (e) {
-           user.create($("#alias").val(), $("#pass").val());
-           let obj = new JSEncrypt({ default_key_size: 1024 });
-           obj.getKey();
-           let public = obj.getPublicKey();
-           let private = obj.getPrivateKey();
-           public = public.replace(/(\r\n|\n|\r)/gm, "")
-           private = private.replace(/(\r\n|\n|\r)/gm, "")
-           let temp = {
-             pub: public,
-             pri: private
-           }
-           localStorage.setItem($("#alias").val(), JSON.stringify(temp))
-         });
-         
-         $("#sign").on("submit", function (e) {
-           e.preventDefault();
-           user.auth($("#alias").val(), $("#pass").val());
-         });
-         
-         gun.on("auth", function () {
-           console.log("auth");
-           sign = true;
-           $("#sign").hide()
-           $("#btns").show()
-           $("#chat").show()
-         });
-         
-         $("#chat").on("submit", function (e) {
-           e.preventDefault();
-           let pub = JSON.parse($("#request").val()).pubkey
-           console.log(pub)
-           temp = gun.get(code(pub)).get($("#alias").val())
-           let t = {
-             pkey: JSON.parse(localStorage.getItem($("#alias").val())).pub,
-           }
-           temp.get("sent").set(JSON.stringify(t));
-         });
-         
-         const recivedMessageDisplay = () => {
-           if (sign) {
-             let publicKey = JSON.parse(localStorage.getItem($("#alias").val())).pub
-             let myPriKey = JSON.parse(localStorage.getItem($("#alias").val())).pri
-             let pubKey = code(publicKey)
-             gun.get(code(publicKey)).once(() => {
-                gun.get(code(publicKey)).once((doc) => {
-                   Object.keys(doc).forEach(key => {
-                     if (key != "_") {
-                       let div = document.createElement(key)
-                       $("#list").append(`<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="fr${key}"><input id="r${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`)
-                       $(`#fr${key}`).on("submit", function (e) {
-                         e.preventDefault();
-                         temp = gun.get(pubKey).get(key).get("sent")
-                         let r = en( pkey, `${$(`#r${key}`).val()}`)
-                         let s = en( publicKey, `${$(`#r${key}`).val()}`)
-                         let t = {
-                           s: s,
-                           r: r
-                         }
-                         temp.set(JSON.stringify(t));
-                         $(`#r${key}`).val("");
-                       })
-                       let t = gun.get(pubKey).get(key).get("sent")
-                       let con = false;
-                       t.map().once(data => {
-                         let temp = JSON.parse(data);
-                         let send = true;
-                         if (con){
-                           if (data) {
-                             let message = de(myPriKey, temp.s)
-                             if (message == false || message == null) {
-                               message = de(myPriKey, temp.r);
-                               send = false
-                            }
-                            let li = document.createElement("li");
-                             let text = document.createTextNode(`${send ? $("#alias").val() : key}: ${message}`);
-                             li.appendChild(text)
-                             $(`#${key} ul`).append(li)
-                           }
-                         } else {
-                           pkey = temp.pkey
-                           con = true;
-                         }
-                       })
-                     }
-                   })
-                  
-                } )
-             })
-           } else {
-             console.log("Enter Public Key")
-           }
-         }
-         
-         const sentMessageDisplay = () => {
-           if (sign) {
-             let publicKey = JSON.parse($("#request").val()).pubkey
-             let myPublicKey = JSON.parse(localStorage.getItem($("#alias").val())).pub
-             let myPriKey = JSON.parse(localStorage.getItem($("#alias").val())).pri
-             let pubKey = code(publicKey)
-             let username = JSON.parse($("#request").val()).username
-             gun.get(code(publicKey)).once(() => {
-                gun.get(code(publicKey)).once((doc) => {
-                  Object.keys(doc).forEach(key => {
-                    if (key == $("#alias").val()) {
-                      let div = document.createElement(key)
-                      $("#list").append(`<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="f${key}"><input id="i${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`)
-                      $(`#f${key}`).on("submit", function (e) {
-                        e.preventDefault();
-                        temp = gun.get(pubKey).get($("#alias").val()).get("sent")
-                        let r = en( publicKey, `${$(`#i${key}`).val()}`)
-                        let s = en( myPublicKey, `${$(`#i${key}`).val()}`)
-                        let t = {
-                          s: s,
-                          r: r
-                        }
-                        temp.set(JSON.stringify(t));
-                        $(`#i${key}`).val("");
-                      })
-                      let t = gun.get(pubKey).get(key).get("sent")
-                      t.map().once(data => {
-                        let temp = JSON.parse(data)
-                        let send = true;
-                        if (temp) {
-                          let message = de(myPriKey, temp.s)
-                          if (!message) {
-                            message = de(myPriKey, temp.r);
-                            send = false
+      const gun = Gun([
+        //  "http://localhost:8000/gun",
+        "https://gun-server-1.herokuapp.com/gun",
+      ]);
+
+      const user = gun.user();
+      user.recall({ sessionStorage: true });
+
+      const getAllData = () => {
+        $("#chats").html("");
+        user.get("chat").once(() => {
+          user.get("chat").once((n) => {
+            Object.values(n).forEach((m) => {
+              mn = JSON.stringify(m);
+              if (mn.slice(1, 3) == "{\\") {
+                let t = desea(userData, JSON.parse(m).pub);
+                t.then((k) => {
+                  gun.user(k).once(() => {
+                    gun.user(k).once((l) => {
+                      $("#chats").append(
+                        `<button type="button" onclick='sentMessageDisplay("${k}", "${myUsername}")'>S: ${l.alias}</button>`
+                      );
+                    });
+                  });
+                });
+              }
+            });
+          });
+        });
+        let pubCode = code(userData.pub);
+        gun.get(pubCode).once(() => {
+          gun.get(pubCode).once((n) => {
+            Object.keys(n).forEach((m) => {
+              if (m != "_") {
+                gun
+                  .get(pubCode)
+                  .get(m)
+                  .get("sent")
+                  .once(() => {
+                    gun
+                      .get(pubCode)
+                      .get(m)
+                      .get("sent")
+                      .once((k) => {
+                        Object.values(k).forEach((l) => {
+                          lk = JSON.stringify(l);
+                          if (lk[4] == "p") {
+                            $("#chats").append(
+                              `<button type="button" onclick='sentMessageDisplay("${
+                                userData.pub
+                              }", "${m}", "${
+                                JSON.parse(l).pkey
+                              }", true)'>R: ${m}</button>`
+                            );
                           }
-     
-                          let li = document.createElement("li");
-                          let text = document.createTextNode(`${send ? $("#alias").val() : username}: ${message}`);
-                          li.appendChild(text)
-                          $(`#${key} ul`).append(li)
+                        });
+                      });
+                  });
+              }
+            });
+          });
+        });
+      };
+
+      $("#up").on("click", function (e) {
+        gun.get(`~@${$("#alias").val()}`).once(() => {
+          gun.get(`~@${$("#alias").val()}`).once((data) => {
+            if (data == undefined) {
+              $("#error").html("");
+              user.create($("#alias").val(), $("#pass").val());
+            } else {
+              $("#error").html("<h4>Username Already Exist</h4>");
+            }
+          });
+        });
+      });
+
+      $("#sign").on("submit", function (e) {
+        e.preventDefault();
+
+        user.auth($("#alias").val(), $("#pass").val(), (data) => {
+          if (data.err) {
+            user.auth($("#alias").val(), $("#pass").val(), (data) => {
+              if (data.err) {
+                user.auth($("#alias").val(), $("#pass").val());
+              }
+            });
+          }
+        });
+      });
+
+      gun.on("auth", function () {
+        console.log("auth");
+        sign = true;
+        $("#sign").hide();
+        $("#btns").show();
+        $("#chat").show();
+        userData = JSON.parse(sessionStorage.getItem("pair"));
+
+        gun.user(userData.pub).once(() => {
+          gun.user(userData.pub).once((data) => {
+            myUsername = data.alias;
+            $("#username").append(`<h3>Username: ${myUsername}</h3>`);
+          });
+        });
+        user.get("keys").once(() => {
+          user.get("keys").once((data) => {
+            if (data == undefined) {
+              let obj = new JSEncrypt({ default_key_size: 1024 });
+              obj.getKey();
+              let public = obj.getPublicKey();
+              let private = obj.getPrivateKey();
+              public = public.replace(/(\r\n|\n|\r)/gm, "");
+              private = private.replace(/(\r\n|\n|\r)/gm, "");
+              keys = {
+                pub: public,
+                pri: private,
+              };
+              let t = ensea(userData, private);
+              t.then((data) => {
+                let temp = {
+                  pub: public,
+                  pri: data,
+                };
+                user.get("keys").put(temp);
+              });
+            } else {
+              let t = desea(userData, data.pri);
+              t.then((d) => {
+                keys = {
+                  pri: d,
+                  pub: data.pub,
+                };
+                getAllData();
+              });
+            }
+          });
+        });
+      });
+
+      $("#chat").on("submit", function (e) {
+        e.preventDefault();
+        let pub = $("#request").val();
+        console.log(pub);
+        temp = gun.get(code(pub)).get(myUsername);
+        let t = {
+          pkey: userData.pub,
+        };
+        temp.get("sent").set(JSON.stringify(t));
+        let t1 = ensea(userData, pub);
+        t1.then((data) => {
+          let t2 = {
+            pub: data,
+          };
+          t2 = JSON.stringify(t2);
+          user.get("chat").set(t2);
+        });
+        //  sentMessageDisplay()
+      });
+
+      const recivedMessageDisplay = () => {
+        if (user.is) {
+          let publicKey = JSON.parse(
+            localStorage.getItem($("#alias").val())
+          ).pub;
+          let myPriKey = JSON.parse(
+            localStorage.getItem($("#alias").val())
+          ).pri;
+          let pubKey = code(publicKey);
+          gun.get(code(publicKey)).once(() => {
+            gun.get(code(publicKey)).once((doc) => {
+              Object.keys(doc).forEach((key) => {
+                if (key != "_") {
+                  let div = document.createElement(key);
+                  $("#list").append(
+                    `<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="fr${key}"><input id="r${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`
+                  );
+                  $(`#fr${key}`).on("submit", function (e) {
+                    e.preventDefault();
+                    temp = gun.get(pubKey).get(key).get("sent");
+                    let r = en(pkey, `${$(`#r${key}`).val()}`);
+                    let s = en(publicKey, `${$(`#r${key}`).val()}`);
+                    let t = {
+                      s: s,
+                      r: r,
+                    };
+                    temp.set(JSON.stringify(t));
+                    $(`#r${key}`).val("");
+                  });
+                  let t = gun.get(pubKey).get(key).get("sent");
+                  let con = false;
+                  t.map().once((data) => {
+                    let temp = JSON.parse(data);
+                    let send = true;
+                    if (con) {
+                      if (data) {
+                        let message = de(myPriKey, temp.s);
+                        if (message == false || message == null) {
+                          message = de(myPriKey, temp.r);
+                          send = false;
                         }
-                      })
+                        let li = document.createElement("li");
+                        let text = document.createTextNode(
+                          `${send ? $("#alias").val() : key}: ${message}`
+                        );
+                        li.appendChild(text);
+                        $(`#${key} ul`).append(li);
+                      }
+                    } else {
+                      pkey = temp.pkey;
+                      con = true;
                     }
-                  })
+                  });
+                }
+              });
+            });
+          });
+        } else {
+          console.log("Enter Public Key");
+        }
+      };
 
-                })
-            })
-           } else {
-             console.log("Enter Public Key")
-           }
-         }
-
-       
-      </script>
-   </body>
+      const sentMessageDisplay = (publicKey, un, pk = "", flag = false) => {
+        if (user.is) {
+          let pubKey = code(publicKey);
+          gun.user(publicKey).once(() => {
+            gun.user(publicKey).once((data) => {
+              let username = data.alias;
+              gun
+                .user(pk == "" ? publicKey : pk)
+                .get("keys")
+                .once(() => {
+                  gun
+                    .user(pk == "" ? publicKey : pk)
+                    .get("keys")
+                    .once((k) => {
+                      gun.get(code(publicKey)).once(() => {
+                        gun.get(code(publicKey)).once((doc) => {
+                          Object.keys(doc).forEach((key) => {
+                            if (key == un) {
+                              let div = document.createElement(key);
+                              $("#list").html(
+                                `<div id="${key}"><h3>${key} - Started The Chat!</h3><ul></ul><form id="f${key}"><input id="i${key}" type="text" placeholder="Type Message..." required/><input type="submit" value="send"/></form></div>`
+                              );
+                              $(`#f${key}`).on("submit", function (e) {
+                                e.preventDefault();
+                                temp = gun.get(pubKey).get(un).get("sent");
+                                let r = en(keys.pub, `${$(`#i${key}`).val()}`);
+                                let s = en(k.pub, `${$(`#i${key}`).val()}`);
+                                let t = {
+                                  s: s,
+                                  r: r,
+                                };
+                                temp.set(JSON.stringify(t));
+                                $(`#i${key}`).val("");
+                              });
+                              let t = gun.get(pubKey).get(key).get("sent");
+                              t.map().once((data) => {
+                                let temp = JSON.parse(data);
+                                let send = true;
+                                if (temp) {
+                                  let message = de(keys.pri, temp.r);
+                                  if (!message) {
+                                    message = de(keys.pri, temp.s);
+                                    send = false;
+                                  }
+                                  if (message) {
+                                    let li = document.createElement("li");
+                                    let text = document.createTextNode(
+                                      flag
+                                        ? `${send ? username : un}: ${message}`
+                                        : `${send ? un : username}: ${message}`
+                                    );
+                                    li.appendChild(text);
+                                    $(`#${key} ul`).append(li);
+                                  }
+                                }
+                              });
+                            }
+                          });
+                        });
+                      });
+                    });
+                });
+            });
+          });
+        } else {
+          console.log("Enter Public Key");
+        }
+      };
+      const showChat = () => {};
+    </script>
+  </body>
 </html>
